@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alarms</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      #addGroupHomeBtn,
+      #addAlarmInGroupBtn {
+        bottom: calc(1.5rem + env(safe-area-inset-bottom));
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <!-- Hamburger -->
+    <button
+      id="hamburger"
+      class="lg:hidden fixed top-4 left-4 z-50 bg-white shadow-lg rounded-full p-3 transition-all duration-300"
+    >
+      <svg
+        class="w-6 h-6 text-gray-700"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M4 6h16M4 12h16M4 18h16"
+        />
+      </svg>
+    </button>
+
+    <!-- Overlay -->
+    <div
+      id="sidebarOverlay"
+      class="fixed inset-0 bg-black bg-opacity-30 z-40 hidden lg:hidden"
+    ></div>
+
+    <div
+      id="sidebar"
+      class="fixed top-0 left-0 h-full w-72 bg-gray-800 text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z-50 flex flex-col"
+    >
+      <div class="p-8 flex-1">
+        <h2 class="text-2xl font-medium mb-10">Antorms</h2>
+        <ul class="space-y-2">
+          <li>
+            <a
+              href="{{ url_for('index') }}"
+              class="block py-3 px-4 rounded-lg transition {{ 'bg-gray-700 text-white font-medium' if not selected_group else 'hover:bg-gray-700' }}"
+            >
+              Groups
+            </a>
+          </li>
+          <li>
+            <a
+              href="{{ url_for('timer') }}"
+              class="block py-3 px-4 rounded-lg transition hover:bg-gray-700 {{ 'bg-gray-700 text-white font-medium' if request.path == '/timer' else '' }}"
+            >
+              Timer
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="p-6 border-t border-gray-700 text-center">
+        <p class="text-xs text-gray-400">
+          <!-- v1.0 • {{ "now"|strftime("%b %d") }} -->
+        </p>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="pt-16 lg:pt-6 pb-24 lg:pb-8 px-6 lg:ml-72">
+      <h1 class="text-2xl font-medium text-gray-800 mb-8">
+        {% if selected_group %} {{ selected_group.name }}
+        <a
+          href="{{ url_for('index') }}"
+          class="text-sm text-blue-600 underline ml-4"
+          >All Groups</a
+        >
+        {% else %} My Groups {% endif %}
+      </h1>
+
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div
+        class="bg-blue-50 border-l-4 border-blue-400 text-blue-800 p-4 mb-6 rounded"
+      >
+        {% for category, message in messages %}
+        <p class="text-sm font-medium">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %} {% if not selected_group %}
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+        {% for group in groups %}
+        <div
+          class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer"
+          onclick="window.location='{{ url_for('view_group', group_id=group.id) }}'"
+        >
+          <div class="p-6 text-center">
+            <h3 class="font-medium text-gray-800">{{ group.name }}</h3>
+            <p class="text-3xl font-bold text-blue-600 mt-3">
+              {{ group.alarms|length }}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">alarms</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button
+        id="addGroupHomeBtn"
+        class="fixed bottom-8 right-8 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-700 z-50 flex items-center justify-center text-2xl"
+      >
+        +
+      </button>
+      {% else %} {% if alarms %}
+      <div class="space-y-4">
+        {% for alarm in alarms %}
+        <div
+          class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between hover:shadow-md transition"
+        >
+          <div class="flex items-center flex-1">
+            <form
+              method="POST"
+              action="{{ url_for('toggle_done', id=alarm.id) }}"
+              class="mr-4"
+            >
+              <input
+                type="checkbox"
+                {%
+                if
+                alarm.is_done
+                %}checked{%
+                endif
+                %}
+                onchange="this.form.submit()"
+                class="w-5 h-5 text-blue-600 rounded focus:ring-blue-300"
+              />
+            </form>
+            <div>
+              <h3
+                class="font-medium text-gray-800 {% if alarm.is_done %}line-through text-gray-400{% endif %}"
+              >
+                {{ alarm.title }}
+              </h3>
+              <p class="text-sm text-gray-600 mt-1">{{ alarm.alarm_time }}</p>
+              {% if alarm.description %}
+              <p class="text-sm text-gray-500 mt-2">{{ alarm.description }}</p>
+              {% endif %} {% if alarm.notify_before_minutes %}
+              <span
+                class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-2 inline-block"
+              >
+                Notify {{ alarm.notify_before_minutes }} min early
+              </span>
+              {% endif %}
+            </div>
+          </div>
+          <a
+            href="{{ url_for('delete_alarm', id=alarm.id) }}"
+            class="text-gray-400 hover:text-red-600"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-center text-gray-500 py-12">
+        No alarms in this group yet.
+      </p>
+      {% endif %}
+
+      <button
+        id="addAlarmInGroupBtn"
+        class="fixed bottom-8 right-8 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-700 z-50 flex items-center justify-center text-2xl"
+      >
+        +
+      </button>
+      {% endif %}
+
+      <!-- Modals -->
+      <div
+        id="addGroupModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4"
+      >
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+          <h3 class="font-medium text-lg mb-4">New Group</h3>
+          <form method="POST" action="{{ url_for('add_group') }}">
+            <input
+              type="text"
+              name="group_name"
+              required
+              placeholder="Group name"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+            <div class="flex gap-3 mt-6">
+              <button
+                type="submit"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium"
+              >
+                Create
+              </button>
+              <button
+                type="button"
+                id="closeGroupModal"
+                class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div
+        id="addAlarmModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4"
+      >
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
+          <h3 class="font-medium text-lg mb-4">
+            Add Alarm — {{ selected_group.name }}
+          </h3>
+          <form method="POST" action="{{ url_for('add_alarm') }}">
+            <input
+              type="hidden"
+              name="group_id"
+              value="{{ selected_group.id }}"
+            />
+            <input
+              type="text"
+              name="title"
+              required
+              placeholder="Title"
+              class="w-full p-3 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:border-blue-500"
+            />
+            <textarea
+              name="description"
+              placeholder="Description (optional)"
+              class="w-full p-3 border border-gray-300 rounded-lg mb-3"
+            ></textarea>
+            <input
+              type="datetime-local"
+              name="alarm_time"
+              required
+              class="w-full p-3 border border-gray-300 rounded-lg mb-3"
+            />
+            <select
+              name="notify_before_minutes"
+              class="w-full p-3 border border-gray-300 rounded-lg mb-5"
+            >
+              <option value="0">No early notification</option>
+              <option value="5">5 minutes before</option>
+              <option value="10">10 minutes before</option>
+              <option value="15">15 minutes before</option>
+              <option value="30">30 minutes before</option>
+            </select>
+            <div class="flex gap-3">
+              <button
+                type="submit"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium"
+              >
+                Add Alarm
+              </button>
+              <button
+                type="button"
+                id="closeAlarmModal"
+                class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <script>
+        const hamburger = document.getElementById("hamburger");
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebarOverlay");
+
+        function openSidebar() {
+          sidebar.classList.remove("-translate-x-full");
+          overlay.classList.remove("hidden");
+          hamburger.style.opacity = "0";
+          hamburger.style.pointerEvents = "none";
+        }
+
+        function closeSidebar() {
+          sidebar.classList.add("-translate-x-full");
+          overlay.classList.add("hidden");
+          hamburger.style.opacity = "1";
+          hamburger.style.pointerEvents = "auto";
+        }
+
+        hamburger.addEventListener("click", openSidebar);
+        overlay.addEventListener("click", closeSidebar);
+
+        document
+          .getElementById("addGroupHomeBtn")
+          ?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            document.getElementById("addGroupModal").classList.remove("hidden");
+          });
+        document
+          .getElementById("addAlarmInGroupBtn")
+          ?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            document.getElementById("addAlarmModal").classList.remove("hidden");
+          });
+        document
+          .getElementById("closeGroupModal")
+          ?.addEventListener("click", () =>
+            document.getElementById("addGroupModal").classList.add("hidden")
+          );
+        document
+          .getElementById("closeAlarmModal")
+          ?.addEventListener("click", () =>
+            document.getElementById("addAlarmModal").classList.add("hidden")
+          );
+
+        [
+          document.getElementById("addGroupModal"),
+          document.getElementById("addAlarmModal"),
+        ].forEach((m) => {
+          m?.addEventListener("click", (e) => {
+            if (e.target === m) m.classList.add("hidden");
+          });
+        });
+
+        if ("Notification" in window && Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+        const script = document.createElement("script");
+        script.src = "/alarm-worker.js?" + Date.now();
+        document.head.appendChild(script);
+      </script>
+    </div>
+  </body>
+</html>

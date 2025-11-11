@@ -1,0 +1,4 @@
+/.env
+/instance
+/korm
+/__pycache__
