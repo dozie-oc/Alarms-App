@@ -12,19 +12,14 @@ app = Flask(__name__, static_folder='static')
 # SECRET KEY
 app.secret_key = os.getenv("SECRET_KEY", "fallback-secret-key")
 
-# DATABASE CONFIG – POSTGRESQL FIRST, SQLITE FALLBACK
-DATABASE_URL = os.getenv("DATABASE_URL")  # e.g. postgresql://user:pass@localhost/dbname
 
-if DATABASE_URL:
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "future": True}
-    print("Using PostgreSQL (Render)")
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reminders.db'
-    print("Using SQLite (fallback)")
+# Database config
+db_url = os.getenv('DATABASE_URL')
+if db_url and db_url.startswith("postgres://"):
+    # Render gives old scheme sometimes, fix it
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
 
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///expenses.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
