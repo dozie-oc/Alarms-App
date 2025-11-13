@@ -36,6 +36,8 @@ migrate = Migrate(app, db)
 
 # Models
 class Group(db.Model):
+    __tablename__ = "groups"
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
 
