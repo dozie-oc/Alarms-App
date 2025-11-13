@@ -15,9 +15,11 @@ app.secret_key = os.getenv("SECRET_KEY", "fallback-secret-key")
 # DATABASE CONFIG – POSTGRESQL FIRST, SQLITE FALLBACK
 DATABASE_URL = os.getenv("DATABASE_URL")  # e.g. postgresql://user:pass@localhost/dbname
 
-if DATABASE_URL and DATABASE_URL.startswith("postgres"):
-    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    print("Using PostgreSQL")
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    print("Using PostgreSQL (Render)")
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reminders.db'
     print("Using SQLite (fallback)")
@@ -28,13 +30,13 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # Custom filter for {{ "now"|strftime(...) }}
-@app.template_filter('strftime')
-def _jinja2_filter_strftime(date, fmt=None):
-    if date == "now" or date is None:
-        date = datetime.now()
-    if fmt is None:
-        fmt = "%b %d"
-    return date.strftime(fmt)
+# @app.template_filter('strftime')
+# def _jinja2_filter_strftime(date, fmt=None):
+#     if date == "now" or date is None:
+#         date = datetime.now()
+#     if fmt is None:
+#         fmt = "%b %d"
+#     return date.strftime(fmt)
 
 # Models
 class Group(db.Model):
