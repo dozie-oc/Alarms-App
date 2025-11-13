@@ -37,7 +37,7 @@ migrate = Migrate(app, db)
 # Models
 class Group(db.Model):
     __tablename__ = "groups"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
 
@@ -46,7 +46,7 @@ class Alarm(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     alarm_time = db.Column(db.DateTime, nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
     group = db.relationship('Group', backref=db.backref('alarms', lazy=True))
     is_done = db.Column(db.Boolean, default=False)
     notify_before_minutes = db.Column(db.Integer, nullable=True)
