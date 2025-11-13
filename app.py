@@ -5,7 +5,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # Loads .env file
+load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 
@@ -25,6 +25,7 @@ else:
     print("Using SQLite (fallback)")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True}
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
