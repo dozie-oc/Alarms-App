@@ -19,13 +19,13 @@ if DATABASE_URL:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "future": True}
     print("Using PostgreSQL (Render)")
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reminders.db'
     print("Using SQLite (fallback)")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True}
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
